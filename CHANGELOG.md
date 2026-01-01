@@ -5,31 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- New features that have been added
+## [0.2.0] - 2026-01-02
 
 ### Changed
 
-- Changes to existing functionality
+- **BREAKING**: Renamed `FLOOR_SENSOR_NOT_ATTACHED` constant to `INT16_SENSOR_NOT_ATTACHED` and `CO2_SENSOR_NOT_EQUIPPED` constant to `UINT16_SENSOR_NOT_ATTACHED` to make data types explicit
+- `temp_air` and `temp_floor` fields in `ThermostatStatus` now return `None` when sensor value equals `INT16_SENSOR_NOT_ATTACHED` (32767)
+- `co2` and `hum_air` fields in `ThermostatStatus` now return `None` when sensor value equals `UINT16_SENSOR_NOT_ATTACHED` (65535)
+- Updated type hints: `temp_air`, `hum_air`, `temp_floor`, and `co2` are now `float | None` or `int | None` instead of `float` or `int`
+- Replaced `asyncio.timeout` with aiohttp's native `ClientTimeout` for more idiomatic and efficient timeout handling
 
-### Deprecated
+### Added
 
-- Features that will be removed in upcoming releases
-
-### Removed
-
-- Features that have been removed
-
-### Fixed
-
-- Bug fixes
-
-### Security
-
-- Security improvements
+- Test coverage for air temperature sensor not attached scenario
+- Test coverage for humidity sensor not attached scenario
 
 ## [0.1.0] - 2025-10-30
 

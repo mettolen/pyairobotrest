@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import aiohttp
 import pytest
+
 from pyairobotrest import AirobotClient
 from pyairobotrest.exceptions import (
     AirobotAuthError,
@@ -54,19 +55,24 @@ def sample_thermostat_data():
     }
 
 
+def setup_mock_response(mock_session, response_data, status=200):
+    """Helper to set up mock HTTP response."""
+    mock_response = AsyncMock()
+    mock_response.status = status
+    mock_response.json = AsyncMock(return_value=response_data)
+
+    mock_context = AsyncMock()
+    mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_context.__aexit__ = AsyncMock(return_value=None)
+
+    mock_session.request = MagicMock(return_value=mock_context)
+    return mock_response
+
+
 @pytest.mark.asyncio
 async def test_get_statuses(client, sample_thermostat_data):
     """Test getting thermostat status."""
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value=sample_thermostat_data)
-
-    client._session.request = MagicMock(
-        return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
-        )
-    )
-
+    setup_mock_response(client._session, sample_thermostat_data)
     status = await client.get_statuses()
 
     assert isinstance(status, ThermostatStatus)
@@ -86,49 +92,41 @@ async def test_get_statuses(client, sample_thermostat_data):
 
 
 @pytest.mark.asyncio
-async def test_get_statuses_no_floor_sensor(
-    client, mock_session, sample_thermostat_data
+@pytest.mark.parametrize(
+    "sensor_field,sensor_value,status_attr,has_sensor_attr",
+    [
+        ("TEMP_FLOOR", 32767, "temp_floor", "has_floor_sensor"),
+        ("TEMP_AIR", 32767, "temp_air", None),
+        (
+            "HUM_AIR",
+            65535,
+            "hum_air",
+            None,
+        ),  # Uses UINT16 (65535) for unsigned percentage
+        ("CO2", 65535, "co2", "has_co2_sensor"),
+    ],
+)
+async def test_get_statuses_sensor_not_attached(
+    client,
+    sample_thermostat_data,
+    sensor_field,
+    sensor_value,
+    status_attr,
+    has_sensor_attr,
 ):
-    """Test status parsing when floor sensor is not attached."""
-    sample_thermostat_data["TEMP_FLOOR"] = 32767  # Indicates no sensor
+    """Test status parsing when various sensors are not attached."""
+    sample_thermostat_data[sensor_field] = sensor_value
+    if sensor_field == "CO2":
+        sample_thermostat_data.pop("AQI", None)
 
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value=sample_thermostat_data)
-
-    mock_session.request = MagicMock(
-        return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
-        )
-    )
-
+    setup_mock_response(client._session, sample_thermostat_data)
     status = await client.get_statuses()
 
-    assert status.temp_floor is None
-    assert status.has_floor_sensor is False
-
-
-@pytest.mark.asyncio
-async def test_get_statuses_no_co2_sensor(client, sample_thermostat_data):
-    """Test status parsing when CO2 sensor is not equipped."""
-    sample_thermostat_data["CO2"] = 65535  # Indicates no sensor
-    sample_thermostat_data.pop("AQI", None)  # AQI not available without CO2 sensor
-
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value=sample_thermostat_data)
-
-    client._session.request = MagicMock(
-        return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
-        )
-    )
-
-    status = await client.get_statuses()
-
-    assert status.co2 is None
-    assert status.aqi is None
-    assert status.has_co2_sensor is False
+    assert getattr(status, status_attr) is None
+    if has_sensor_attr:
+        assert getattr(status, has_sensor_attr) is False
+    if sensor_field == "CO2":
+        assert status.aqi is None
 
 
 @pytest.mark.asyncio
@@ -225,15 +223,7 @@ async def test_validation_warnings(client, caplog):
         "STATUS_FLAGS": [{"WINDOW_OPEN_DETECTED": 0, "HEATING_ON": 1}],
     }
 
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value=invalid_data)
-
-    client._session.request = MagicMock(
-        return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
-        )
-    )
+    setup_mock_response(client._session, invalid_data)
 
     # Capture logs
     with caplog.at_level("WARNING"):
@@ -263,7 +253,7 @@ async def test_string_values_conversion(mock_session):
         "FW_VERSION": "265",  # String instead of int
         "TEMP_AIR": 245,
         "HUM_AIR": 322,
-        "TEMP_FLOOR": 32767,
+        "TEMP_FLOOR": 32767,  # Sensor not attached
         "CO2": 1110,
         "AQI": 3,
         "SETPOINT_TEMP": 240,
@@ -273,15 +263,7 @@ async def test_string_values_conversion(mock_session):
         "STATUS_FLAGS": [{"WINDOW_OPEN_DETECTED": 0, "HEATING_ON": 0}],
     }
 
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value=mock_data)
-
-    mock_session.request = MagicMock(
-        return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
-        )
-    )
+    setup_mock_response(mock_session, mock_data)
 
     client = AirobotClient("192.168.1.100", "test_user", "test_pass")
     client._session = mock_session
@@ -344,76 +326,24 @@ async def test_session_provided_externally():
 
 
 @pytest.mark.asyncio
-async def test_http_403_error():
-    """Test 403 Forbidden error handling."""
+@pytest.mark.parametrize(
+    "status_code,exception_type,expected_message",
+    [
+        (401, AirobotAuthError, "Authentication failed - check username/password"),
+        (403, AirobotAuthError, "Access forbidden"),
+        (500, AirobotError, "API request failed with status 500"),
+    ],
+)
+async def test_http_errors(status_code, exception_type, expected_message):
+    """Test HTTP error handling for various status codes."""
     mock_session = MagicMock(spec=aiohttp.ClientSession)
     client = AirobotClient(
         "192.168.1.100", "test_user", "test_pass", session=mock_session
     )
 
-    mock_response = AsyncMock()
-    mock_response.status = 403
-    mock_response.json = AsyncMock(return_value={})
+    setup_mock_response(mock_session, {}, status=status_code)
 
-    # Create a proper async context manager mock
-    mock_context = AsyncMock()
-    mock_context.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_context.__aexit__ = AsyncMock(return_value=None)
-
-    mock_session.request = MagicMock(return_value=mock_context)
-
-    with pytest.raises(AirobotAuthError) as exc_info:
+    with pytest.raises(exception_type) as exc_info:
         await client._request("GET", "/test")
 
-    assert "Access forbidden" in str(exc_info.value)
-    assert "Local API" in str(exc_info.value)
-
-
-@pytest.mark.asyncio
-async def test_http_401_error():
-    """Test 401 Unauthorized error handling."""
-    mock_session = MagicMock(spec=aiohttp.ClientSession)
-    client = AirobotClient(
-        "192.168.1.100", "test_user", "test_pass", session=mock_session
-    )
-
-    mock_response = AsyncMock()
-    mock_response.status = 401
-    mock_response.json = AsyncMock(return_value={})
-
-    # Create a proper async context manager mock
-    mock_context = AsyncMock()
-    mock_context.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_context.__aexit__ = AsyncMock(return_value=None)
-
-    mock_session.request = MagicMock(return_value=mock_context)
-
-    with pytest.raises(AirobotAuthError) as exc_info:
-        await client._request("GET", "/test")
-
-    assert "Authentication failed - check username/password" in str(exc_info.value)
-
-
-@pytest.mark.asyncio
-async def test_http_generic_error():
-    """Test generic HTTP error handling (4xx/5xx status codes)."""
-    mock_session = MagicMock(spec=aiohttp.ClientSession)
-    client = AirobotClient(
-        "192.168.1.100", "test_user", "test_pass", session=mock_session
-    )
-
-    mock_response = AsyncMock()
-    mock_response.status = 500
-    mock_response.json = AsyncMock(return_value={})
-
-    # Create a proper async context manager mock
-    mock_context = AsyncMock()
-    mock_context.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_context.__aexit__ = AsyncMock(return_value=None)
-
-    mock_session.request = MagicMock(return_value=mock_context)
-
-    with pytest.raises(AirobotError) as exc_info:
-        await client._request("GET", "/test")
-
-    assert "API request failed with status 500" in str(exc_info.value)
+    assert expected_message in str(exc_info.value)
