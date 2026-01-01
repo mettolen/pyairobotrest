@@ -9,12 +9,10 @@ from .const import (
     AQI_MIN,
     CO2_MAX,
     CO2_MIN,
-    CO2_SENSOR_NOT_EQUIPPED,
     DEVICE_NAME_MAX_LENGTH,
     DEVICE_NAME_MIN_LENGTH,
     FLAG_MAX,
     FLAG_MIN,
-    FLOOR_SENSOR_NOT_ATTACHED,
     FW_VERSION_MAX,
     FW_VERSION_MIN,
     HUM_AIR_MAX,
@@ -23,6 +21,7 @@ from .const import (
     HW_VERSION_MIN,
     HYSTERESIS_BAND_MAX,
     HYSTERESIS_BAND_MIN,
+    INT16_SENSOR_NOT_ATTACHED,
     MODE_MAX,
     MODE_MIN,
     SETPOINT_TEMP_AWAY_RAW_MAX,
@@ -35,6 +34,7 @@ from .const import (
     TEMP_AIR_MIN,
     TEMP_FLOOR_MAX,
     TEMP_FLOOR_MIN,
+    UINT16_SENSOR_NOT_ATTACHED,
     UPTIME_MAX,
     UPTIME_MIN,
 )
@@ -95,8 +95,8 @@ class ThermostatStatus:
     device_id: str
     hw_version: int
     fw_version: int
-    temp_air: float  # Air temperature in °C
-    hum_air: float  # Relative humidity in %
+    temp_air: float | None  # Air temperature in °C, None if sensor not attached
+    hum_air: float | None  # Relative humidity in %, None if sensor not attached
     temp_floor: float | None  # Floor temperature in °C, None if sensor not attached
     co2: int | None  # CO2 measurement in ppm, None if sensor not equipped
     aqi: int | None  # Air quality index (0-5), None if CO2 sensor not equipped
@@ -124,21 +124,27 @@ class ThermostatStatus:
             ValueError: If strict=True and any value is outside expected range.
         """
         # Convert temperature values from API format (0.1°C units) to °C
-        temp_air = data.get("TEMP_AIR", 0) / 10.0
-        temp_floor_raw = data.get("TEMP_FLOOR", FLOOR_SENSOR_NOT_ATTACHED)
+        temp_air_raw = data.get("TEMP_AIR", INT16_SENSOR_NOT_ATTACHED)
+        temp_air = (
+            None if temp_air_raw == INT16_SENSOR_NOT_ATTACHED else temp_air_raw / 10.0
+        )
+        temp_floor_raw = data.get("TEMP_FLOOR", INT16_SENSOR_NOT_ATTACHED)
         temp_floor = (
             None
-            if temp_floor_raw == FLOOR_SENSOR_NOT_ATTACHED
+            if temp_floor_raw == INT16_SENSOR_NOT_ATTACHED
             else temp_floor_raw / 10.0
         )
         setpoint_temp = data.get("SETPOINT_TEMP", 200) / 10.0
 
         # Convert humidity from API format (0.1% units) to %
-        hum_air = data.get("HUM_AIR", 0) / 10.0
+        hum_air_raw = data.get("HUM_AIR", UINT16_SENSOR_NOT_ATTACHED)
+        hum_air = (
+            None if hum_air_raw == UINT16_SENSOR_NOT_ATTACHED else hum_air_raw / 10.0
+        )
 
         # Handle CO2 and AQI (None if sensor not equipped)
-        co2_raw = data.get("CO2", CO2_SENSOR_NOT_EQUIPPED)
-        co2 = None if co2_raw == CO2_SENSOR_NOT_EQUIPPED else co2_raw
+        co2_raw = data.get("CO2", UINT16_SENSOR_NOT_ATTACHED)
+        co2 = None if co2_raw == UINT16_SENSOR_NOT_ATTACHED else co2_raw
         aqi = data.get("AQI") if co2 is not None else None
 
         # Parse status flags

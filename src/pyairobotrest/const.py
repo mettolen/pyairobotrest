@@ -16,8 +16,8 @@ METHOD_GET = "GET"
 METHOD_POST = "POST"
 
 # Value constants
-FLOOR_SENSOR_NOT_ATTACHED = 32767
-CO2_SENSOR_NOT_EQUIPPED = 65535
+INT16_SENSOR_NOT_ATTACHED = 32767  # Signed 16-bit max (temperature sensors)
+UINT16_SENSOR_NOT_ATTACHED = 65535  # Unsigned 16-bit max (CO2/humidity sensors)
 
 # Temperature limits (in 0.1°C units as per API)
 MIN_TEMP_RAW = 50  # 5.0°C
@@ -63,7 +63,6 @@ MODE_MIN = 1  # HOME mode
 MODE_MAX = 2  # AWAY mode
 MODE_HOME = 1
 MODE_AWAY = 2
-MODE_DEFAULT = 1  # HOME mode default
 
 # Setpoint temperature ranges (in 0.1°C units as per API)
 # Both HOME and AWAY temperatures have same range: 50-350 (5.0°C - 35.0°C)
