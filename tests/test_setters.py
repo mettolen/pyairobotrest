@@ -2,14 +2,18 @@
 # pylint: disable=redefined-outer-name,protected-access
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from pyairobotrest import AirobotClient
 
+if TYPE_CHECKING:
+    pass
+
 
 @pytest.fixture
-def client_with_response(mock_session_with_response):
+def client_with_response(mock_session_with_response: Any) -> AirobotClient:
     """Create test client with mocked session that returns successful response."""
     return AirobotClient(
         "192.168.1.100",
@@ -40,8 +44,12 @@ def client_with_response(mock_session_with_response):
     ],
 )
 async def test_setter_methods(
-    client_with_response, mock_session_with_response, method_name, args, expected_json
-):
+    client_with_response: AirobotClient,
+    mock_session_with_response: Any,
+    method_name: str,
+    args: tuple[Any, ...],
+    expected_json: dict[str, Any],
+) -> None:
     """Test all setter methods with various inputs."""
     method = getattr(client_with_response, method_name)
     await method(*args)
@@ -52,7 +60,9 @@ async def test_setter_methods(
 
 
 @pytest.mark.asyncio
-async def test_logging_on_post_request(client_with_response, caplog):
+async def test_logging_on_post_request(
+    client_with_response: AirobotClient, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test that POST requests log details at debug level."""
     caplog.set_level(logging.DEBUG)
     await client_with_response.set_mode(2)

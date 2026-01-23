@@ -1,6 +1,7 @@
 """Shared pytest fixtures for pyairobotrest tests."""
 # pylint: disable=redefined-outer-name
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import aiohttp
@@ -10,7 +11,7 @@ from pyairobotrest import AirobotClient
 
 
 @pytest.fixture
-def mock_session():
+def mock_session() -> MagicMock:
     """Create a mock aiohttp session.
 
     Returns:
@@ -22,7 +23,7 @@ def mock_session():
 
 
 @pytest.fixture
-def mock_session_with_response():
+def mock_session_with_response() -> MagicMock:
     """Create a mock aiohttp session with a standard 200 OK response.
 
     Returns:
@@ -38,7 +39,7 @@ def mock_session_with_response():
 
 
 @pytest.fixture
-def client(mock_session):
+def client(mock_session: MagicMock) -> AirobotClient:
     """Create a basic test client with mocked session.
 
     Args:
@@ -56,7 +57,7 @@ def client(mock_session):
 
 
 @pytest.fixture
-def validation_client():
+def validation_client() -> AirobotClient:
     """Create test client for validation tests (no mocked session).
 
     Returns:
@@ -70,7 +71,7 @@ def validation_client():
 
 
 @pytest.fixture
-def sample_thermostat_data():
+def sample_thermostat_data() -> dict[str, Any]:
     """Sample thermostat status API response data.
 
     Returns:
@@ -94,7 +95,7 @@ def sample_thermostat_data():
 
 
 @pytest.fixture
-def sample_thermostat_settings():
+def sample_thermostat_settings() -> dict[str, Any]:
     """Sample thermostat settings API response data.
 
     Returns:
@@ -119,7 +120,9 @@ def sample_thermostat_settings():
     }
 
 
-def setup_mock_response(session, response_data, status=200):
+def setup_mock_response(
+    session: Any, response_data: dict[str, Any], status: int = 200
+) -> AsyncMock:
     """Helper to set up mock HTTP response.
 
     Args:

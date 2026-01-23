@@ -15,7 +15,9 @@ from pyairobotrest.models import ThermostatStatus
         (255, 511, "0.255", "1.255"),
     ],
 )
-def test_version_decoding(hw_raw, fw_raw, expected_hw, expected_fw):
+def test_version_decoding(
+    hw_raw: int, fw_raw: int, expected_hw: str, expected_fw: str
+) -> None:
     """Test various version decoding patterns."""
     data = {
         "DEVICE_ID": "T01TEST123",

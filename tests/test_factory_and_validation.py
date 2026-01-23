@@ -11,7 +11,7 @@ from pyairobotrest.models import ThermostatSettings, ThermostatStatus
 
 
 @pytest.mark.asyncio
-async def test_create_factory_method():
+async def test_create_factory_method() -> None:
     """Test that factory method creates a client with initialized session."""
     client = await AirobotClient.create(
         host="192.168.1.100",
@@ -28,7 +28,7 @@ async def test_create_factory_method():
 
 
 @pytest.mark.asyncio
-async def test_create_with_provided_session():
+async def test_create_with_provided_session() -> None:
     """Test that factory method can accept a provided session."""
     provided_session = Mock()
     client = await AirobotClient.create(
@@ -49,7 +49,9 @@ async def test_create_with_provided_session():
         (9999, False, False),
     ],
 )
-def test_status_strict_validation(hw_version, strict, should_raise):
+def test_status_strict_validation(
+    hw_version: int, strict: bool, should_raise: bool
+) -> None:
     """Test strict validation for status data."""
     data = {
         "DEVICE_ID": "T01TEST",
@@ -75,7 +77,9 @@ def test_status_strict_validation(hw_version, strict, should_raise):
         assert status.hw_version == hw_version
 
 
-def test_status_non_strict_validation_logs_warning(caplog):
+def test_status_non_strict_validation_logs_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test that non-strict validation logs warning but doesn't raise."""
     caplog.set_level(logging.WARNING)
 
@@ -110,7 +114,9 @@ def test_status_non_strict_validation_logs_warning(caplog):
         ("DEVICE_NAME", "x" * 25, True),
     ],
 )
-def test_settings_strict_validation(field, value, should_raise):
+def test_settings_strict_validation(
+    field: str, value: int | str, should_raise: bool
+) -> None:
     """Test strict validation for settings data."""
     data = {
         "DEVICE_ID": "T01TEST",

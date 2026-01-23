@@ -9,7 +9,7 @@ from pyairobotrest.models import SettingFlags, ThermostatSettings
 
 
 @pytest.mark.asyncio
-async def test_get_settings():
+async def test_get_settings() -> None:
     """Test getting thermostat settings."""
     mock_session = MagicMock()
     mock_response = AsyncMock()
@@ -49,7 +49,7 @@ async def test_get_settings():
 
 
 @pytest.mark.asyncio
-async def test_setting_flags_from_dict():
+async def test_setting_flags_from_dict() -> None:
     """Test SettingFlags creation from dictionary."""
     data = {
         "REBOOT": 1,
@@ -68,7 +68,7 @@ async def test_setting_flags_from_dict():
 
 
 @pytest.mark.asyncio
-async def test_setting_flags_to_dict():
+async def test_setting_flags_to_dict() -> None:
     """Test SettingFlags conversion to dictionary."""
     flags = SettingFlags(
         reboot=True,
@@ -95,7 +95,9 @@ async def test_setting_flags_to_dict():
         (2, False, True),
     ],
 )
-async def test_settings_mode_properties(mode, expected_home, expected_away):
+async def test_settings_mode_properties(
+    mode: int, expected_home: bool, expected_away: bool
+) -> None:
     """Test ThermostatSettings mode helper properties."""
     flags = SettingFlags(
         reboot=False,
@@ -119,7 +121,7 @@ async def test_settings_mode_properties(mode, expected_home, expected_away):
 
 
 @pytest.mark.asyncio
-async def test_settings_string_conversion():
+async def test_settings_string_conversion() -> None:
     """Test ThermostatSettings handles string values from real API."""
     mock_session = MagicMock()
     mock_response = AsyncMock()
@@ -154,7 +156,7 @@ async def test_settings_string_conversion():
 
 
 @pytest.mark.asyncio
-async def test_settings_validation_warnings(caplog):
+async def test_settings_validation_warnings(caplog: pytest.LogCaptureFixture) -> None:
     """Test that out-of-range settings values generate warnings."""
     data = {
         "DEVICE_ID": "T01648142",
@@ -174,7 +176,7 @@ async def test_settings_validation_warnings(caplog):
 
 
 @pytest.mark.asyncio
-async def test_settings_to_dict():
+async def test_settings_to_dict() -> None:
     """Test ThermostatSettings to_dict conversion."""
     flags = SettingFlags(
         reboot=False,

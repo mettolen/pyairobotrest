@@ -3,6 +3,7 @@
 
 import pytest
 
+from pyairobotrest import AirobotClient
 from pyairobotrest.exceptions import AirobotError
 
 
@@ -68,7 +69,12 @@ from pyairobotrest.exceptions import AirobotError
         ),
     ],
 )
-async def test_validation_errors(validation_client, method_name, args, expected_error):
+async def test_validation_errors(
+    validation_client: AirobotClient,
+    method_name: str,
+    args: tuple[str, ...],
+    expected_error: str,
+) -> None:
     """Test validation methods that raise errors for invalid inputs."""
     method = getattr(validation_client, method_name)
     with pytest.raises(AirobotError, match=expected_error):

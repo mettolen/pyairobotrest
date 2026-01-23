@@ -71,6 +71,14 @@ class AirobotClient:
         self._timeout = timeout
         self._close_session = False
         self._auth_header = self._create_auth_header()
+        _LOGGER.debug(
+            "Initialized AirobotClient "
+            "(host=%s, port=%d, timeout=%ds, external_session=%s)",
+            self.host,
+            self.port,
+            self._timeout,
+            session is not None,
+        )
 
     @classmethod
     async def create(
@@ -117,6 +125,7 @@ class AirobotClient:
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if self._session is None:
+            _LOGGER.debug("Creating new aiohttp ClientSession")
             self._session = aiohttp.ClientSession()
             self._close_session = True
         return self._session
@@ -124,6 +133,7 @@ class AirobotClient:
     async def close(self) -> None:
         """Close the client session."""
         if self._close_session and self._session:
+            _LOGGER.debug("Closing aiohttp ClientSession")
             await self._session.close()
             self._session = None
 
@@ -166,11 +176,11 @@ class AirobotClient:
         headers = {"Authorization": self._auth_header}
         timeout = aiohttp.ClientTimeout(total=self._timeout)
 
-        try:
-            # Log request details for POST requests
-            if method == METHOD_POST and endpoint == API_ENDPOINT_SET_SETTINGS:
-                _LOGGER.debug("POST %s request: %s", endpoint, json_data)
+        _LOGGER.debug("Making %s request to %s", method, endpoint)
+        if method == METHOD_POST and json_data:
+            _LOGGER.debug("%s request data: %s", method, json_data)
 
+        try:
             async with session.request(
                 method,
                 url,
@@ -178,47 +188,49 @@ class AirobotClient:
                 headers=headers,
                 timeout=timeout,
             ) as response:
-                # Log response details for POST requests
-                if method == METHOD_POST and endpoint == API_ENDPOINT_SET_SETTINGS:
-                    _LOGGER.debug(
-                        "POST %s response: status=%d, headers=%s",
-                        endpoint,
-                        response.status,
-                        dict(response.headers),
-                    )
+                _LOGGER.debug("Response %d from %s", response.status, endpoint)
 
                 if response.status == 401:
+                    _LOGGER.error("Authentication failed (401)")
                     raise AirobotAuthError(
                         "Authentication failed - check username/password in "
                         "thermostat menu under 'Mobile app' screen"
                     )
                 if response.status == 403:
+                    _LOGGER.error("Access forbidden (403)")
                     raise AirobotAuthError(
                         "Access forbidden - ensure Local API is enabled in "
                         "thermostat settings (Connectivity → Local API → Enable)"
                     )
                 if response.status >= 400:
+                    _LOGGER.warning(
+                        "API request failed with status %d for %s",
+                        response.status,
+                        endpoint,
+                    )
                     raise AirobotError(
                         f"API request failed with status {response.status}"
                     )
 
                 response_data: dict[str, Any] = await response.json()
 
-                # Log response content for POST requests
-                if method == METHOD_POST and endpoint == API_ENDPOINT_SET_SETTINGS:
-                    _LOGGER.debug(
-                        "POST %s response content: %s",
-                        endpoint,
-                        response_data,
-                    )
+                if method == METHOD_POST:
+                    _LOGGER.debug("%s response content: %s", method, response_data)
 
                 return response_data
 
         except TimeoutError as err:
+            _LOGGER.warning(
+                "Request timeout after %d seconds for %s %s",
+                self._timeout,
+                method,
+                endpoint,
+            )
             raise AirobotTimeoutError(
                 f"Request to {url} timed out after {self._timeout} seconds"
             ) from err
         except aiohttp.ClientError as err:
+            _LOGGER.error("Connection error for %s %s: %s", method, endpoint, err)
             raise AirobotConnectionError(f"Failed to connect to {url}: {err}") from err
 
     async def get_statuses(self) -> ThermostatStatus:
@@ -236,6 +248,7 @@ class AirobotClient:
             AirobotAuthError: If authentication fails.
             AirobotError: For other API errors.
         """
+        _LOGGER.debug("Fetching thermostat statuses")
         data = await self._request(METHOD_GET, API_ENDPOINT_GET_STATUSES)
         return ThermostatStatus.from_dict(data)
 
@@ -253,6 +266,7 @@ class AirobotClient:
             AirobotAuthError: If authentication fails.
             AirobotError: For other API errors.
         """
+        _LOGGER.debug("Fetching thermostat settings")
         data = await self._request(METHOD_GET, API_ENDPOINT_GET_SETTINGS)
         return ThermostatSettings.from_dict(data)
 

@@ -27,7 +27,7 @@ from pyairobotrest import AirobotClient
 from pyairobotrest.exceptions import AirobotConnectionError, AirobotError
 
 
-async def main():
+async def main() -> None:
     """Main example function."""
     # Create client instance with Basic Auth credentials
     # Replace with your actual thermostat credentials
@@ -90,7 +90,7 @@ async def main():
         await client.close()
 
 
-async def factory_method_example():
+async def factory_method_example() -> None:
     """Example using factory method for explicit session initialization."""
     print("Factory Method Example - Recommended for Home Assistant")
     print("=" * 60)
@@ -113,7 +113,7 @@ async def factory_method_example():
         await client.close()
 
 
-async def context_manager_example():
+async def context_manager_example() -> None:
     """Example using context manager."""
     print("Context Manager Example")
     print("=" * 60)
@@ -127,7 +127,7 @@ async def context_manager_example():
         print(f"Current air temperature: {status.temp_air:.1f}°C")
 
 
-async def strict_validation_example():
+async def strict_validation_example() -> None:
     """Example demonstrating strict validation mode."""
     print("Strict Validation Example")
     print("=" * 60)
@@ -140,7 +140,7 @@ async def strict_validation_example():
     print("In production, use default mode (strict=False) which logs warnings")
 
 
-def show_help():
+def show_help() -> None:
     """Show available usage information."""
     print("=" * 70)
     print("pyairobotrest - Airobot Thermostat API Library Examples")

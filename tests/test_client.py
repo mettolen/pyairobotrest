@@ -2,6 +2,7 @@
 # pylint: disable=redefined-outer-name,protected-access
 
 import base64
+from typing import Any
 from unittest.mock import MagicMock
 
 import aiohttp
@@ -20,7 +21,9 @@ from .conftest import setup_mock_response
 
 
 @pytest.mark.asyncio
-async def test_get_statuses(client, sample_thermostat_data):
+async def test_get_statuses(
+    client: AirobotClient, sample_thermostat_data: dict[str, Any]
+) -> None:
     """Test getting thermostat status with all sensor data."""
     setup_mock_response(client._session, sample_thermostat_data)
     status = await client.get_statuses()
@@ -54,13 +57,13 @@ async def test_get_statuses(client, sample_thermostat_data):
     ],
 )
 async def test_sensor_not_attached(
-    client,
-    sample_thermostat_data,
-    sensor_field,
-    sensor_value,
-    status_attr,
-    has_sensor_attr,
-):
+    client: AirobotClient,
+    sample_thermostat_data: dict[str, Any],
+    sensor_field: str,
+    sensor_value: int,
+    status_attr: str,
+    has_sensor_attr: str | None,
+) -> None:
     """Test status parsing when sensors are not attached."""
     sample_thermostat_data[sensor_field] = sensor_value
     if sensor_field == "CO2":
@@ -85,7 +88,9 @@ async def test_sensor_not_attached(
         (500, AirobotError, "API request failed with status 500"),
     ],
 )
-async def test_http_errors(status_code, exception_type, expected_message):
+async def test_http_errors(
+    status_code: int, exception_type: type, expected_message: str
+) -> None:
     """Test HTTP error handling for various status codes."""
     mock_session = MagicMock(spec=aiohttp.ClientSession)
     client = AirobotClient(
@@ -98,9 +103,9 @@ async def test_http_errors(status_code, exception_type, expected_message):
 
 
 @pytest.mark.asyncio
-async def test_connection_error(client):
+async def test_connection_error(client: AirobotClient) -> None:
     """Test connection error handling."""
-    client._session.request = MagicMock(
+    client._session.request = MagicMock(  # type: ignore[union-attr, method-assign]
         side_effect=aiohttp.ClientError("Connection failed")
     )
 
@@ -109,17 +114,17 @@ async def test_connection_error(client):
 
 
 @pytest.mark.asyncio
-async def test_timeout_error(client):
+async def test_timeout_error(client: AirobotClient) -> None:
     """Test timeout error handling."""
-    client._session.request = MagicMock(side_effect=TimeoutError("Request timeout"))
-    client._timeout = 0.1
+    client._session.request = MagicMock(side_effect=TimeoutError("Request timeout"))  # type: ignore[union-attr, method-assign]
+    client._timeout = 1  # Change to int to match type hint
 
     with pytest.raises(AirobotTimeoutError):
         await client.get_statuses()
 
 
 @pytest.mark.asyncio
-async def test_context_manager():
+async def test_context_manager() -> None:
     """Test client as context manager."""
     async with AirobotClient(
         host="192.168.1.100", username="T01TEST123", password="test_password"
@@ -129,7 +134,7 @@ async def test_context_manager():
 
 
 @pytest.mark.asyncio
-async def test_auth_header_creation():
+async def test_auth_header_creation() -> None:
     """Test Basic Auth header creation."""
     client = AirobotClient(
         host="192.168.1.100", username="T01TEST123", password="test_password"
@@ -140,7 +145,7 @@ async def test_auth_header_creation():
     assert decoded == "T01TEST123:test_password"
 
 
-def test_url_building():
+def test_url_building() -> None:
     """Test URL building for API endpoints."""
     client = AirobotClient(
         host="192.168.1.100", username="T01TEST123", password="test_password"
@@ -150,7 +155,7 @@ def test_url_building():
 
 
 @pytest.mark.asyncio
-async def test_string_values_conversion(mock_session):
+async def test_string_values_conversion(mock_session: MagicMock) -> None:
     """Test that string numeric values are properly converted."""
     mock_data = {
         "HW_VERSION": "257",
@@ -181,7 +186,7 @@ async def test_string_values_conversion(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_session_creation_and_closing():
+async def test_session_creation_and_closing() -> None:
     """Test automatic session creation and cleanup."""
     client = AirobotClient("192.168.1.100", "test_user", "test_pass")
     assert client._session is None
@@ -199,7 +204,7 @@ async def test_session_creation_and_closing():
 
 
 @pytest.mark.asyncio
-async def test_session_provided_externally():
+async def test_session_provided_externally() -> None:
     """Test behavior when session is provided externally."""
     external_session = MagicMock(spec=aiohttp.ClientSession)
     client = AirobotClient(
@@ -215,7 +220,9 @@ async def test_session_provided_externally():
 
 
 @pytest.mark.asyncio
-async def test_validation_warnings(client, caplog):
+async def test_validation_warnings(
+    client: AirobotClient, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test validation warnings for out-of-range values."""
     invalid_data = {
         "DEVICE_ID": "T01TEST123",
