@@ -1,5 +1,12 @@
 """Exceptions for pyairobotrest."""
 
+__all__ = [
+    "AirobotError",
+    "AirobotConnectionError",
+    "AirobotAuthError",
+    "AirobotTimeoutError",
+]
+
 
 class AirobotError(Exception):
     """Base exception for Airobot errors."""

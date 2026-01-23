@@ -1,5 +1,63 @@
 """Constants for pyairobotrest."""
 
+__all__ = [
+    # API endpoints
+    "API_BASE_PATH",
+    "API_ENDPOINT_GET_STATUSES",
+    "API_ENDPOINT_GET_SETTINGS",
+    "API_ENDPOINT_SET_SETTINGS",
+    # Default values
+    "DEFAULT_TIMEOUT",
+    "DEFAULT_PORT",
+    "POLLING_INTERVAL",
+    # HTTP methods
+    "METHOD_GET",
+    "METHOD_POST",
+    # Value constants
+    "INT16_SENSOR_NOT_ATTACHED",
+    "UINT16_SENSOR_NOT_ATTACHED",
+    "MIN_TEMP_RAW",
+    "MAX_TEMP_RAW",
+    "NO_ERROR",
+    # Validation ranges
+    "TEMP_AIR_MIN",
+    "TEMP_AIR_MAX",
+    "TEMP_FLOOR_MIN",
+    "TEMP_FLOOR_MAX",
+    "SETPOINT_TEMP_MIN",
+    "SETPOINT_TEMP_MAX",
+    "HUM_AIR_MIN",
+    "HUM_AIR_MAX",
+    "CO2_MIN",
+    "CO2_MAX",
+    "AQI_MIN",
+    "AQI_MAX",
+    "HW_VERSION_MIN",
+    "HW_VERSION_MAX",
+    "FW_VERSION_MIN",
+    "FW_VERSION_MAX",
+    "UPTIME_MIN",
+    "UPTIME_MAX",
+    # Settings validation ranges
+    "MODE_MIN",
+    "MODE_MAX",
+    "MODE_HOME",
+    "MODE_AWAY",
+    "SETPOINT_TEMP_RAW_MIN",
+    "SETPOINT_TEMP_RAW_MAX",
+    "SETPOINT_TEMP_RAW_DEFAULT",
+    "SETPOINT_TEMP_AWAY_RAW_MIN",
+    "SETPOINT_TEMP_AWAY_RAW_MAX",
+    "SETPOINT_TEMP_AWAY_RAW_DEFAULT",
+    "HYSTERESIS_BAND_MIN",
+    "HYSTERESIS_BAND_MAX",
+    "HYSTERESIS_BAND_DEFAULT",
+    "DEVICE_NAME_MIN_LENGTH",
+    "DEVICE_NAME_MAX_LENGTH",
+    "FLAG_MIN",
+    "FLAG_MAX",
+]
+
 # API endpoints
 API_BASE_PATH = "/api/thermostat"
 API_ENDPOINT_GET_STATUSES = "/getStatuses"

@@ -1,5 +1,7 @@
 """Airobot thermostat REST API client."""
 
+__all__ = ["AirobotClient"]
+
 import base64
 import logging
 from typing import Any

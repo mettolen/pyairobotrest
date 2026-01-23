@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0]
+
+### Added
+
+- Human-readable version properties `hw_version_string` and `fw_version_string` on `ThermostatStatus` (decodes raw firmware/hardware versions from format: major \* 256 + minor)
+- New test modules: `test_models.py`, `test_factory_and_validation.py`, `test_setters.py`
+
+### Changed
+
+- Reorganized and consolidated test files using parametrized tests
+
 ## [0.2.0] - 2026-01-02
 
 ### Changed

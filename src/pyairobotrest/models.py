@@ -1,5 +1,12 @@
 """Data models for pyairobotrest."""
 
+__all__ = [
+    "StatusFlags",
+    "ThermostatStatus",
+    "SettingFlags",
+    "ThermostatSettings",
+]
+
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -41,6 +48,23 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
+
+
+def _decode_version(value: int) -> str:
+    """Decode firmware/hardware version from integer to string format.
+
+    Version is encoded as: major * 256 + minor
+    Example: 267 -> 1.11 (267 = 1 * 256 + 11)
+
+    Args:
+        value: Encoded version number.
+
+    Returns:
+        Version string in format "major.minor" (e.g., "1.11").
+    """
+    major = value // 256
+    minor = value % 256
+    return f"{major}.{minor}"
 
 
 def _validate_range(
@@ -203,6 +227,16 @@ class ThermostatStatus:
             setpoint_temp=setpoint_temp,
             status_flags=status_flags,
         )
+
+    @property
+    def hw_version_string(self) -> str:
+        """Return hardware version as human-readable string (e.g., '1.11')."""
+        return _decode_version(self.hw_version)
+
+    @property
+    def fw_version_string(self) -> str:
+        """Return firmware version as human-readable string (e.g., '1.11')."""
+        return _decode_version(self.fw_version)
 
     @property
     def has_floor_sensor(self) -> bool:
