@@ -5,16 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0]
+## [0.3.0] - 2026-01-24
 
 ### Added
 
 - Human-readable version properties `hw_version_string` and `fw_version_string` on `ThermostatStatus` (decodes raw firmware/hardware versions from format: major \* 256 + minor)
+- Enhanced logging capabilities with comprehensive debug and error logging throughout the client
+- NullHandler to prevent logging warnings when library is used without logging configuration
+- Complete type annotations for all test files and example.py
 - New test modules: `test_models.py`, `test_factory_and_validation.py`, `test_setters.py`
+- Pre-commit hook for mypy now runs on both `src/` and `tests/` directories
 
 ### Changed
 
 - Reorganized and consolidated test files using parametrized tests
+- Updated mypy pre-commit configuration to include pytest as additional dependency
+- Fixed codecov GitHub Actions configuration (`file:` → `files:`)
+
+### Fixed
+
+- All mypy strict type checking errors (55 errors resolved)
+- Added proper type hints for function parameters and return types across test suite
 
 ## [0.2.0] - 2026-01-02
 
