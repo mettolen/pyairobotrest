@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyairobotrest"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python library for Airobot thermostat TE1 local REST API"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -41,6 +41,9 @@ dev = [
 Homepage = "https://github.com/mettolen/pyairobotrest"
 Repository = "https://github.com/mettolen/pyairobotrest"
 Issues = "https://github.com/mettolen/pyairobotrest/issues"
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]

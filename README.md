@@ -1,6 +1,17 @@
 # pyairobotrest
 
+[![CI](https://github.com/mettolen/pyairobotrest/actions/workflows/ci.yml/badge.svg)](https://github.com/mettolen/pyairobotrest/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/mettolen/pyairobotrest/branch/main/graph/badge.svg)](https://codecov.io/gh/mettolen/pyairobotrest)
+[![PyPI version](https://badge.fury.io/py/pyairobotrest.svg)](https://badge.fury.io/py/pyairobotrest)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/pyairobotrest.svg)](https://pypi.org/project/pyairobotrest/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pyairobotrest.svg)](https://pypi.org/project/pyairobotrest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Python library for controlling [Airobot](https://airobothome.com/) TE1 thermostats via local REST API.
+
+This library is used by the [Airobot Home Assistant integration](https://www.home-assistant.io/integrations/airobot).
+
+<a href="https://my.home-assistant.io/redirect/config_flow_start?domain=airobot" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a>
 
 ## Features
 
@@ -49,6 +60,9 @@ async def main():
     try:
         # Read current status
         status = await client.get_statuses()
+        print(f"Device: {status.device_id}")
+        print(f"Hardware: v{status.hw_version_string}")
+        print(f"Firmware: v{status.fw_version_string}")
         print(f"Current temperature: {status.temp_air:.1f}°C")
         print(f"Target temperature: {status.setpoint_temp:.1f}°C")
         print(f"Humidity: {status.hum_air:.1f}%")
@@ -167,8 +181,8 @@ asyncio.run(main())
 class ThermostatStatus:
     # Device identification
     device_id: str                      # Unique device ID
-    hw_version: int                     # Hardware version
-    fw_version: int                     # Firmware version
+    hw_version: int                     # Hardware version (raw)
+    fw_version: int                     # Firmware version (raw)
 
     # Temperature measurements
     temp_air: float                     # Air temperature in °C
@@ -189,6 +203,10 @@ class ThermostatStatus:
     # Sensor availability
     has_floor_sensor: bool              # True if floor sensor attached
     has_co2_sensor: bool                # True if CO2 sensor equipped
+
+    # Version properties (human-readable)
+    hw_version_string: str              # Hardware version (e.g., "1.11")
+    fw_version_string: str              # Firmware version (e.g., "1.11")
 ```
 
 ### Data Model (ThermostatSettings)
@@ -281,10 +299,31 @@ pre-commit run --all-files
 This library is tested and compatible with:
 
 - Airobot TE1 thermostats with local REST API enabled
+  - Tested with hardware v1.1 (257) and firmware v1.11 (267)
 - Home Assistant integration
 - Python 3.11, 3.12, 3.13+
 
 ## Advanced Usage
+
+### Firmware and Hardware Version Decoding
+
+The thermostat reports firmware and hardware versions as encoded integers. The library automatically decodes these to human-readable strings:
+
+```python
+status = await client.get_statuses()
+
+# Raw version numbers (as stored in device)
+print(f"Raw HW version: {status.hw_version}")  # e.g., 267
+print(f"Raw FW version: {status.fw_version}")  # e.g., 257
+
+# Human-readable version strings (automatically decoded)
+print(f"HW version: v{status.hw_version_string}")  # e.g., v1.11
+print(f"FW version: v{status.fw_version_string}")  # e.g., v1.1
+
+# Version encoding: value = major * 256 + minor
+# Example: 267 = 1 * 256 + 11 = v1.11
+#          257 = 1 * 256 + 1  = v1.1
+```
 
 ### Input Validation
 
