@@ -9,9 +9,11 @@
 
 Python library for controlling [Airobot](https://airobothome.com/) TE1 thermostats via local REST API.
 
-This library is used by the [Airobot Home Assistant integration](https://www.home-assistant.io/integrations/airobot).
+---
 
-<a href="https://my.home-assistant.io/redirect/config_flow_start?domain=airobot" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a>
+This library is used by the [Airobot](https://www.home-assistant.io/integrations/airobot) Home Assistant integration.
+
+<a href="https://www.home-assistant.io/integrations/airobot/" target="_blank"><img alt="Dynamic Regex Badge" src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fwww.home-assistant.io%2Fintegrations%2Fairobot%2F&search=(%5B%5Cd%2C%5D%2B)%5Cs*%3C%2Fa%3E%5Cs*active%20installations&replace=%241&style=for-the-badge&logo=homeassistant&label=Active%20installations&labelColor=%23f2f4f9&color=%2346bdf4"></a> <a href="https://www.home-assistant.io/docs/quality_scale/" target="_blank"><img alt="Dynamic Regex Badge" src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fwww.home-assistant.io%2Fintegrations%2Fairobot%2F&search=%3Ca%20href%3D'%5B%5E'%5D*quality_scale%5B%5E'%5D*'%3E(%5B%5E%3C%5D%2B%3F)%20quality%3C%2Fa%3E&replace=%241&style=for-the-badge&logo=homeassistant&label=Quality%20scale&labelColor=%23f2f4f9&color=%2346bdf4"></a> <a href="https://my.home-assistant.io/redirect/config_flow_start?domain=airobot" target="_blank"><img alt="Static Badge" src="https://img.shields.io/badge/Airobot-i?style=for-the-badge&logo=homeassistant&label=Add%20integration&labelColor=%23f2f4f9&color=%2346bdf4"></a>
 
 ## Features
 
@@ -405,7 +407,7 @@ except AirobotConnectionError as err:
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
@@ -417,15 +419,3 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 - Reporting bugs and requesting features
 
 For major changes, please open an issue first to discuss what you would like to change.
-
-## Credits
-
-This library is designed to work with [Airobot](https://airobot.net/) TE1 thermostats and is used by the [Home Assistant Airobot integration](https://www.home-assistant.io/integrations/airobot/).
-
-**Key Features Developed:**
-
-- Complete REST API implementation for Airobot thermostats
-- Comprehensive error handling and input validation
-- Type-safe API with full asyncio support
-- Individual setter methods for granular control
-- Production-ready reliability and performance
