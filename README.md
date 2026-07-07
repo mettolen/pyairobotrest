@@ -301,7 +301,7 @@ pre-commit run --all-files
 This library is tested and compatible with:
 
 - Airobot TE1 thermostats with local REST API enabled
-  - Tested with hardware v1.1 (257) and firmware v1.11 (267)
+  - Tested with hardware v1.1 (257) and firmware v1.13 (269)
 - Home Assistant integration
 - Python 3.11, 3.12, 3.13+
 
@@ -316,11 +316,11 @@ status = await client.get_statuses()
 
 # Raw version numbers (as stored in device)
 print(f"Raw HW version: {status.hw_version}")  # e.g., 267
-print(f"Raw FW version: {status.fw_version}")  # e.g., 257
+print(f"Raw FW version: {status.fw_version}")  # e.g., 269
 
 # Human-readable version strings (automatically decoded)
 print(f"HW version: v{status.hw_version_string}")  # e.g., v1.11
-print(f"FW version: v{status.fw_version_string}")  # e.g., v1.1
+print(f"FW version: v{status.fw_version_string}")  # e.g., v1.13
 
 # Version encoding: value = major * 256 + minor
 # Example: 267 = 1 * 256 + 11 = v1.11
