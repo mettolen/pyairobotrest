@@ -473,12 +473,21 @@ class AirobotClient:
 
         Warning: This will restart the thermostat device.
 
+        Rebooting causes the thermostat to drop its TCP connection mid-request,
+        so the HTTP call legitimately fails with a connection or timeout error
+        even though the reboot command was received and executed. Such errors are
+        therefore expected and suppressed here.
+
         Raises:
-            AirobotConnectionError: If connection fails.
             AirobotAuthError: If authentication fails.
-            AirobotError: If the request fails.
         """
-        await self._set_partial_settings(REBOOT=1)
+        try:
+            await self._set_partial_settings(REBOOT=1)
+        except (AirobotConnectionError, AirobotTimeoutError):
+            _LOGGER.debug(
+                "Connection dropped during reboot request, "
+                "which is expected as the thermostat restarts"
+            )
 
     async def recalibrate_co2_sensor(self) -> None:
         """Recalibrate CO2 sensor (sets current air as 400 PPM).

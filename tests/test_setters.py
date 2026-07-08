@@ -3,10 +3,15 @@
 
 import logging
 from typing import TYPE_CHECKING, Any
+from unittest.mock import MagicMock
 
+import aiohttp
 import pytest
 
 from pyairobotrest import AirobotClient
+from pyairobotrest.exceptions import AirobotAuthError
+
+from .conftest import setup_mock_response
 
 if TYPE_CHECKING:
     pass
@@ -69,3 +74,31 @@ async def test_logging_on_post_request(
 
     assert "POST" in caplog.text
     assert "setSettings" in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "side_effect",
+    [
+        pytest.param(aiohttp.ClientError("Connection reset"), id="connection_error"),
+        pytest.param(TimeoutError("Request timeout"), id="timeout_error"),
+    ],
+)
+async def test_reboot_suppresses_expected_connection_errors(
+    client: AirobotClient, side_effect: Exception
+) -> None:
+    """Test reboot suppresses connection/timeout errors from the dropped socket."""
+    client._session.request = MagicMock(  # type: ignore[union-attr, method-assign]
+        side_effect=side_effect
+    )
+
+    await client.reboot_thermostat()
+
+
+@pytest.mark.asyncio
+async def test_reboot_propagates_auth_error(client: AirobotClient) -> None:
+    """Test reboot still raises when authentication fails."""
+    setup_mock_response(client._session, {}, status=401)
+
+    with pytest.raises(AirobotAuthError):
+        await client.reboot_thermostat()
