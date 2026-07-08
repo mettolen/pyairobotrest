@@ -3,7 +3,7 @@
 
 import base64
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import aiohttp
 import pytest
@@ -111,6 +111,23 @@ async def test_connection_error(client: AirobotClient) -> None:
 
     with pytest.raises(AirobotConnectionError):
         await client.get_statuses()
+
+
+@pytest.mark.asyncio
+async def test_non_dict_response_raises(client: AirobotClient) -> None:
+    """Test a non-object JSON response raises AirobotError."""
+    mock_response = AsyncMock()
+    mock_response.status = 200
+    mock_response.json = AsyncMock(return_value=["unexpected"])
+    mock_context = AsyncMock()
+    mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_context.__aexit__ = AsyncMock(return_value=None)
+    client._session.request = MagicMock(  # type: ignore[union-attr, method-assign]
+        return_value=mock_context
+    )
+
+    with pytest.raises(AirobotError, match="expected a JSON object"):
+        await client._request("GET", "/test")
 
 
 @pytest.mark.asyncio
@@ -227,7 +244,7 @@ async def test_validation_warnings(
     invalid_data = {
         "DEVICE_ID": "T01TEST123",
         "HW_VERSION": 100,
-        "FW_VERSION": 1000,
+        "FW_VERSION": 70000,
         "TEMP_AIR": -10000,
         "HUM_AIR": 70000,
         "TEMP_FLOOR": 300,
@@ -249,5 +266,5 @@ async def test_validation_warnings(
 
     warning_messages = [r.message for r in caplog.records if r.levelname == "WARNING"]
     assert any("HW_VERSION" in msg and "100" in msg for msg in warning_messages)
-    assert any("FW_VERSION" in msg and "1000" in msg for msg in warning_messages)
+    assert any("FW_VERSION" in msg and "70000" in msg for msg in warning_messages)
     assert any("AQI" in msg and "10" in msg for msg in warning_messages)

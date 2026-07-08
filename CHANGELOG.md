@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ThermostatMode` `IntEnum` (`HOME`, `AWAY`) exported from the package. `set_mode()` now accepts a `ThermostatMode` member in addition to the raw `int`.
+- `AirobotClient.set_settings()` to write a full `ThermostatSettings` object back to the thermostat. Transient action flags (`REBOOT`, `RECALIBRATE_CO2`) are forced off so persisting settings never triggers those actions as a side effect, and an empty device name is omitted from the request.
+
+### Changed
+
+- `ThermostatStatus.from_dict()` now coerces all numeric fields (temperatures, humidity, CO2, AQI) to their expected types before use, matching `ThermostatSettings.from_dict()`. This prevents `TypeError`/type mismatches when the device returns numeric values as strings.
+- Raised the `HW_VERSION`/`FW_VERSION` validation ceiling from `999` to `65535` (uint16 max) so valid versions above `3.231` are no longer flagged as out of range.
+- Status and settings parsing now share the same default fallbacks via the `SETPOINT_TEMP_RAW_DEFAULT`, `SETPOINT_TEMP_AWAY_RAW_DEFAULT`, and `HYSTERESIS_BAND_DEFAULT` constants, removing an inconsistent `SETPOINT_TEMP` default.
+
 ### Fixed
 
 - `reboot_thermostat()` no longer raises when the thermostat drops its TCP connection mid-request while restarting; the resulting `AirobotConnectionError` and `AirobotTimeoutError` are now expected and suppressed, since the reboot command was received and executed. Authentication errors are still raised.
+- Missing `HW_VERSION`/`FW_VERSION` fields no longer emit a spurious out-of-range warning on every poll.
+- Requests now raise `AirobotError` when the API returns a non-object (e.g. a JSON array) instead of silently returning an unexpected type.
 
 ## [0.3.0] - 2026-01-24
 

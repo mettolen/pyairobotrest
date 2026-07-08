@@ -45,8 +45,8 @@ async def test_create_with_provided_session() -> None:
     "hw_version,strict,should_raise",
     [
         (256, True, False),
-        (9999, True, True),
-        (9999, False, False),
+        (70000, True, True),
+        (70000, False, False),
     ],
 )
 def test_status_strict_validation(
@@ -85,7 +85,7 @@ def test_status_non_strict_validation_logs_warning(
 
     data = {
         "DEVICE_ID": "T01TEST",
-        "HW_VERSION": 9999,
+        "HW_VERSION": 70000,
         "FW_VERSION": 262,
         "TEMP_AIR": 220,
         "HUM_AIR": 400,
@@ -100,7 +100,7 @@ def test_status_non_strict_validation_logs_warning(
     }
 
     status = ThermostatStatus.from_dict(data, strict=False)
-    assert status.hw_version == 9999
+    assert status.hw_version == 70000
     assert "HW_VERSION" in caplog.text
     assert "outside expected range" in caplog.text
 

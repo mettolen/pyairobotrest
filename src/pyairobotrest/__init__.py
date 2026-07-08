@@ -9,7 +9,13 @@ from .exceptions import (
     AirobotError,
     AirobotTimeoutError,
 )
-from .models import SettingFlags, StatusFlags, ThermostatSettings, ThermostatStatus
+from .models import (
+    SettingFlags,
+    StatusFlags,
+    ThermostatMode,
+    ThermostatSettings,
+    ThermostatStatus,
+)
 
 __version__ = version("pyairobotrest")
 
@@ -23,4 +29,5 @@ __all__ = [
     "StatusFlags",
     "ThermostatSettings",
     "SettingFlags",
+    "ThermostatMode",
 ]

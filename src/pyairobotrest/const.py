@@ -106,10 +106,11 @@ AQI_MIN = 0
 AQI_MAX = 5
 
 # Version ranges
+# Versions are encoded as major * 256 + minor, so the ceiling is the uint16 max.
 HW_VERSION_MIN = 256
-HW_VERSION_MAX = 999
+HW_VERSION_MAX = 65535
 FW_VERSION_MIN = 256
-FW_VERSION_MAX = 999
+FW_VERSION_MAX = 65535
 
 # Uptime range (seconds)
 UPTIME_MIN = 0

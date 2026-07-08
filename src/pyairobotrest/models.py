@@ -5,10 +5,12 @@ __all__ = [
     "ThermostatStatus",
     "SettingFlags",
     "ThermostatSettings",
+    "ThermostatMode",
 ]
 
 import logging
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Any
 
 from .const import (
@@ -26,15 +28,20 @@ from .const import (
     HUM_AIR_MIN,
     HW_VERSION_MAX,
     HW_VERSION_MIN,
+    HYSTERESIS_BAND_DEFAULT,
     HYSTERESIS_BAND_MAX,
     HYSTERESIS_BAND_MIN,
     INT16_SENSOR_NOT_ATTACHED,
+    MODE_AWAY,
+    MODE_HOME,
     MODE_MAX,
     MODE_MIN,
+    SETPOINT_TEMP_AWAY_RAW_DEFAULT,
     SETPOINT_TEMP_AWAY_RAW_MAX,
     SETPOINT_TEMP_AWAY_RAW_MIN,
     SETPOINT_TEMP_MAX,
     SETPOINT_TEMP_MIN,
+    SETPOINT_TEMP_RAW_DEFAULT,
     SETPOINT_TEMP_RAW_MAX,
     SETPOINT_TEMP_RAW_MIN,
     TEMP_AIR_MAX,
@@ -48,6 +55,13 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
+
+
+class ThermostatMode(IntEnum):
+    """Thermostat operating mode."""
+
+    HOME = MODE_HOME
+    AWAY = MODE_AWAY
 
 
 def _decode_version(value: int) -> str:
@@ -147,56 +161,54 @@ class ThermostatStatus:
         Raises:
             ValueError: If strict=True and any value is outside expected range.
         """
-        # Convert temperature values from API format (0.1°C units) to °C
-        temp_air_raw = data.get("TEMP_AIR", INT16_SENSOR_NOT_ATTACHED)
+        # Convert temperature values from API format (0.1°C units) to °C.
+        # The device may return numeric values as strings, so coerce to int first.
+        temp_air_raw = int(data.get("TEMP_AIR", INT16_SENSOR_NOT_ATTACHED))
         temp_air = (
             None if temp_air_raw == INT16_SENSOR_NOT_ATTACHED else temp_air_raw / 10.0
         )
-        temp_floor_raw = data.get("TEMP_FLOOR", INT16_SENSOR_NOT_ATTACHED)
+        temp_floor_raw = int(data.get("TEMP_FLOOR", INT16_SENSOR_NOT_ATTACHED))
         temp_floor = (
             None
             if temp_floor_raw == INT16_SENSOR_NOT_ATTACHED
             else temp_floor_raw / 10.0
         )
-        setpoint_temp = data.get("SETPOINT_TEMP", 200) / 10.0
+        setpoint_temp = int(data.get("SETPOINT_TEMP", SETPOINT_TEMP_RAW_DEFAULT)) / 10.0
 
         # Convert humidity from API format (0.1% units) to %
-        hum_air_raw = data.get("HUM_AIR", UINT16_SENSOR_NOT_ATTACHED)
+        hum_air_raw = int(data.get("HUM_AIR", UINT16_SENSOR_NOT_ATTACHED))
         hum_air = (
             None if hum_air_raw == UINT16_SENSOR_NOT_ATTACHED else hum_air_raw / 10.0
         )
 
         # Handle CO2 and AQI (None if sensor not equipped)
-        co2_raw = data.get("CO2", UINT16_SENSOR_NOT_ATTACHED)
+        co2_raw = int(data.get("CO2", UINT16_SENSOR_NOT_ATTACHED))
         co2 = None if co2_raw == UINT16_SENSOR_NOT_ATTACHED else co2_raw
-        aqi = data.get("AQI") if co2 is not None else None
+        aqi_raw = data.get("AQI")
+        aqi = int(aqi_raw) if co2 is not None and aqi_raw is not None else None
 
         # Parse status flags
         status_flags_list = data.get("STATUS_FLAGS", [{}])
         status_flags_data = status_flags_list[0] if status_flags_list else {}
         status_flags = StatusFlags.from_dict(status_flags_data)
 
-        # Extract remaining values for validation (convert to int if string)
-        hw_version_raw = data.get("HW_VERSION", 0)
-        fw_version_raw = data.get("FW_VERSION", 0)
-        device_uptime_raw = data.get("DEVICE_UPTIME", 0)
-        heating_uptime_raw = data.get("HEATING_UPTIME", 0)
-        errors_raw = data.get("ERRORS", 0)
+        # Extract remaining values, coercing to int in case the device returns strings
+        hw_version = int(data.get("HW_VERSION", 0))
+        fw_version = int(data.get("FW_VERSION", 0))
+        device_uptime = int(data.get("DEVICE_UPTIME", 0))
+        heating_uptime = int(data.get("HEATING_UPTIME", 0))
+        errors = int(data.get("ERRORS", 0))
 
-        # Convert string values to integers
-        hw_version = int(hw_version_raw) if hw_version_raw != 0 else 0
-        fw_version = int(fw_version_raw) if fw_version_raw != 0 else 0
-        device_uptime = int(device_uptime_raw) if device_uptime_raw != 0 else 0
-        heating_uptime = int(heating_uptime_raw) if heating_uptime_raw != 0 else 0
-        errors = int(errors_raw) if errors_raw != 0 else 0
-
-        # Validate all values against expected ranges
-        _validate_range(
-            hw_version, HW_VERSION_MIN, HW_VERSION_MAX, "HW_VERSION", strict
-        )
-        _validate_range(
-            fw_version, FW_VERSION_MIN, FW_VERSION_MAX, "FW_VERSION", strict
-        )
+        # Validate all values against expected ranges.
+        # Skip version validation when absent (0) to avoid spurious warnings.
+        if hw_version:
+            _validate_range(
+                hw_version, HW_VERSION_MIN, HW_VERSION_MAX, "HW_VERSION", strict
+            )
+        if fw_version:
+            _validate_range(
+                fw_version, FW_VERSION_MIN, FW_VERSION_MAX, "FW_VERSION", strict
+            )
         _validate_range(temp_air, TEMP_AIR_MIN, TEMP_AIR_MAX, "TEMP_AIR", strict)
         _validate_range(hum_air, HUM_AIR_MIN, HUM_AIR_MAX, "HUM_AIR", strict)
         _validate_range(
@@ -323,9 +335,11 @@ class ThermostatSettings:
             ValueError: If strict=True and any value is outside expected range.
         """
         # Convert temperature values from API format (0.1°C units) to °C
-        setpoint_temp_raw = data.get("SETPOINT_TEMP", 220)
-        setpoint_temp_away_raw = data.get("SETPOINT_TEMP_AWAY", 180)
-        hysteresis_band_raw = data.get("HYSTERESIS_BAND", 1)
+        setpoint_temp_raw = data.get("SETPOINT_TEMP", SETPOINT_TEMP_RAW_DEFAULT)
+        setpoint_temp_away_raw = data.get(
+            "SETPOINT_TEMP_AWAY", SETPOINT_TEMP_AWAY_RAW_DEFAULT
+        )
+        hysteresis_band_raw = data.get("HYSTERESIS_BAND", HYSTERESIS_BAND_DEFAULT)
 
         # Convert string values to integers (handle real API responses)
         setpoint_temp = int(setpoint_temp_raw) / 10.0
@@ -414,9 +428,9 @@ class ThermostatSettings:
     @property
     def is_home_mode(self) -> bool:
         """Return True if thermostat is in HOME mode."""
-        return self.mode == 1
+        return self.mode == ThermostatMode.HOME
 
     @property
     def is_away_mode(self) -> bool:
         """Return True if thermostat is in AWAY mode."""
-        return self.mode == 2
+        return self.mode == ThermostatMode.AWAY

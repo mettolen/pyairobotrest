@@ -32,7 +32,7 @@ from .exceptions import (
     AirobotError,
     AirobotTimeoutError,
 )
-from .models import ThermostatSettings, ThermostatStatus
+from .models import ThermostatMode, ThermostatSettings, ThermostatStatus
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -113,6 +113,10 @@ class AirobotClient:
             ... )
         """
         instance = cls(host, username, password, port, session, timeout)
+        # Eagerly bind the session while inside a running event loop. When no
+        # external session is supplied this creates the client-owned session up
+        # front (and only then), so the connection pool is tied to this loop
+        # rather than being lazily created on the first request.
         await instance._get_session()
         return instance
 
@@ -141,7 +145,7 @@ class AirobotClient:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, *args: Any) -> None:
+    async def __aexit__(self, *args: object) -> None:
         """Async context manager exit."""
         await self.close()
 
@@ -212,7 +216,12 @@ class AirobotClient:
                         f"API request failed with status {response.status}"
                     )
 
-                response_data: dict[str, Any] = await response.json()
+                response_data = await response.json()
+                if not isinstance(response_data, dict):
+                    raise AirobotError(
+                        f"Unexpected response from {endpoint}: expected a JSON "
+                        f"object, got {type(response_data).__name__}"
+                    )
 
                 if method == METHOD_POST:
                     _LOGGER.debug("%s response content: %s", method, response_data)
@@ -269,6 +278,37 @@ class AirobotClient:
         _LOGGER.debug("Fetching thermostat settings")
         data = await self._request(METHOD_GET, API_ENDPOINT_GET_SETTINGS)
         return ThermostatSettings.from_dict(data)
+
+    async def set_settings(self, settings: ThermostatSettings) -> None:
+        """Write a full settings object back to the thermostat.
+
+        The transient action flags (REBOOT, RECALIBRATE_CO2) are forced off so
+        persisting settings never triggers those actions as a side effect. Use
+        reboot_thermostat() or recalibrate_co2_sensor() to trigger them explicitly.
+        An empty device name is omitted rather than sent back to the device.
+
+        Args:
+            settings: The settings to write to the thermostat.
+
+        Raises:
+            AirobotConnectionError: If connection fails.
+            AirobotAuthError: If authentication fails.
+            AirobotError: If the request fails or any value is out of range.
+        """
+        self._validate_mode(settings.mode)
+        self._validate_temperature(settings.setpoint_temp, "HOME temperature")
+        self._validate_temperature(settings.setpoint_temp_away, "AWAY temperature")
+        self._validate_hysteresis(settings.hysteresis_band)
+        if settings.device_name:
+            self._validate_device_name(settings.device_name)
+
+        payload = settings.to_dict()
+        payload["SETTING_FLAGS"][0]["REBOOT"] = 0
+        payload["SETTING_FLAGS"][0]["RECALIBRATE_CO2"] = 0
+        if not settings.device_name:
+            payload.pop("DEVICE_NAME", None)
+
+        await self._request(METHOD_POST, API_ENDPOINT_SET_SETTINGS, payload)
 
     def _validate_mode(self, mode: int) -> None:
         """Validate mode value.
@@ -370,11 +410,13 @@ class AirobotClient:
 
         await self._request(METHOD_POST, API_ENDPOINT_SET_SETTINGS, payload)
 
-    async def set_mode(self, mode: int) -> None:
+    async def set_mode(self, mode: ThermostatMode | int) -> None:
         """Set thermostat mode (1=HOME, 2=AWAY).
 
         Args:
-            mode: 1 for HOME mode, 2 for AWAY mode.
+            mode: The mode to set. Accepts a ThermostatMode member
+                (ThermostatMode.HOME/ThermostatMode.AWAY) or the raw int
+                (1 for HOME, 2 for AWAY).
 
         Raises:
             AirobotConnectionError: If connection fails.
@@ -382,7 +424,7 @@ class AirobotClient:
             AirobotError: If the request fails or mode is out of range.
         """
         self._validate_mode(mode)
-        await self._set_partial_settings(MODE=mode)
+        await self._set_partial_settings(MODE=int(mode))
 
     async def set_home_temperature(self, temperature: float) -> None:
         """Set HOME mode setpoint temperature.

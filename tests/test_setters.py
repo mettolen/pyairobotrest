@@ -9,7 +9,8 @@ import aiohttp
 import pytest
 
 from pyairobotrest import AirobotClient
-from pyairobotrest.exceptions import AirobotAuthError
+from pyairobotrest.exceptions import AirobotAuthError, AirobotError
+from pyairobotrest.models import SettingFlags, ThermostatMode, ThermostatSettings
 
 from .conftest import setup_mock_response
 
@@ -102,3 +103,82 @@ async def test_reboot_propagates_auth_error(client: AirobotClient) -> None:
 
     with pytest.raises(AirobotAuthError):
         await client.reboot_thermostat()
+
+
+@pytest.mark.asyncio
+async def test_set_mode_accepts_enum(
+    client_with_response: AirobotClient, mock_session_with_response: Any
+) -> None:
+    """Test set_mode accepts a ThermostatMode member."""
+    await client_with_response.set_mode(ThermostatMode.AWAY)
+
+    payload = mock_session_with_response.request.call_args[1]["json"]
+    assert payload == {"MODE": 2}
+
+
+def _make_settings(
+    *, device_name: str = "Kitchen", reboot: bool = False, recalibrate: bool = False
+) -> ThermostatSettings:
+    """Build a ThermostatSettings instance for set_settings tests."""
+    return ThermostatSettings(
+        device_id="T01TEST123",
+        mode=ThermostatMode.AWAY,
+        setpoint_temp=21.0,
+        setpoint_temp_away=17.0,
+        hysteresis_band=0.2,
+        device_name=device_name,
+        setting_flags=SettingFlags(
+            reboot=reboot,
+            actuator_exercise_disabled=True,
+            recalibrate_co2=recalibrate,
+            childlock_enabled=True,
+            boost_enabled=False,
+        ),
+    )
+
+
+@pytest.mark.asyncio
+async def test_set_settings_sends_full_payload_and_guards_flags(
+    client_with_response: AirobotClient, mock_session_with_response: Any
+) -> None:
+    """Test set_settings writes all fields and forces transient flags off."""
+    await client_with_response.set_settings(
+        _make_settings(reboot=True, recalibrate=True)
+    )
+
+    payload = mock_session_with_response.request.call_args[1]["json"]
+    assert payload["MODE"] == 2
+    assert payload["SETPOINT_TEMP"] == 210
+    assert payload["SETPOINT_TEMP_AWAY"] == 170
+    assert payload["HYSTERESIS_BAND"] == 2
+    assert payload["DEVICE_NAME"] == "Kitchen"
+    flags = payload["SETTING_FLAGS"][0]
+    assert flags["REBOOT"] == 0
+    assert flags["RECALIBRATE_CO2"] == 0
+    assert flags["ACTUATOR_EXERCISE_DISABLED"] == 1
+    assert flags["CHILDLOCK_ENABLED"] == 1
+
+
+@pytest.mark.asyncio
+async def test_set_settings_omits_empty_device_name(
+    client_with_response: AirobotClient, mock_session_with_response: Any
+) -> None:
+    """Test set_settings omits an empty device name from the payload."""
+    await client_with_response.set_settings(_make_settings(device_name=""))
+
+    payload = mock_session_with_response.request.call_args[1]["json"]
+    assert "DEVICE_NAME" not in payload
+
+
+@pytest.mark.asyncio
+async def test_set_settings_validates_before_sending(
+    client_with_response: AirobotClient, mock_session_with_response: Any
+) -> None:
+    """Test set_settings validates values and does not send on failure."""
+    settings = _make_settings()
+    settings.mode = 5
+
+    with pytest.raises(AirobotError):
+        await client_with_response.set_settings(settings)
+
+    mock_session_with_response.request.assert_not_called()
