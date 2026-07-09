@@ -49,7 +49,7 @@ Before using this library, ensure your Airobot thermostat is properly configured
 
 ```python
 import asyncio
-from pyairobotrest import AirobotClient, AirobotConnectionError
+from pyairobotrest import AirobotClient, AirobotConnectionError, ThermostatMode
 
 async def main():
     # Create client - replace with your thermostat's IP and credentials
@@ -78,14 +78,14 @@ async def main():
 
         # Read current settings
         settings = await client.get_settings()
-        print(f"Mode: {'HOME' if settings.mode == 1 else 'AWAY'}")
+        print(f"Mode: {'HOME' if settings.mode == ThermostatMode.HOME else 'AWAY'}")
         print(f"HOME temp: {settings.setpoint_temp}°C")
         print(f"AWAY temp: {settings.setpoint_temp_away}°C")
 
         # Control the thermostat
-        await client.set_home_temperature(23.0)  # Set HOME temperature
-        await client.set_mode(1)                 # Switch to HOME mode
-        await client.set_boost_mode(True)        # Enable boost for 1 hour
+        await client.set_home_temperature(23.0)          # Set HOME temperature
+        await client.set_mode(ThermostatMode.HOME)       # Switch to HOME mode
+        await client.set_boost_mode(True)                # Enable boost for 1 hour
 
     except AirobotConnectionError as err:
         print(f"Connection error: {err}")
@@ -161,20 +161,21 @@ asyncio.run(main())
 
 ### Main Client Methods
 
-| Method                               | Description                   | Parameters                   |
-| ------------------------------------ | ----------------------------- | ---------------------------- |
-| `get_statuses()`                     | Read all current measurements | None                         |
-| `get_settings()`                     | Read all thermostat settings  | None                         |
-| `set_mode(mode)`                     | Set HOME/AWAY mode            | `mode: int` (1=HOME, 2=AWAY) |
-| `set_home_temperature(temp)`         | Set HOME temperature          | `temp: float` (5.0-35.0°C)   |
-| `set_away_temperature(temp)`         | Set AWAY temperature          | `temp: float` (5.0-35.0°C)   |
-| `set_hysteresis_band(hyst)`          | Set temperature hysteresis    | `hyst: float` (0.0-0.5°C)    |
-| `set_device_name(name)`              | Set device name               | `name: str` (1-20 chars)     |
-| `set_child_lock(enabled)`            | Enable/disable child lock     | `enabled: bool`              |
-| `set_boost_mode(enabled)`            | Enable/disable boost mode     | `enabled: bool`              |
-| `reboot_thermostat()`                | Reboot the thermostat         | None                         |
-| `recalibrate_co2_sensor()`           | Recalibrate CO2 sensor        | None                         |
-| `toggle_actuator_exercise(disabled)` | Enable/disable actuator test  | `disabled: bool`             |
+| Method                               | Description                   | Parameters                                     |
+| ------------------------------------ | ----------------------------- | ---------------------------------------------- |
+| `get_statuses()`                     | Read all current measurements | None                                           |
+| `get_settings()`                     | Read all thermostat settings  | None                                           |
+| `set_settings(settings)`             | Write full settings object    | `settings: ThermostatSettings`                 |
+| `set_mode(mode)`                     | Set HOME/AWAY mode            | `mode: ThermostatMode \| int` (1=HOME, 2=AWAY) |
+| `set_home_temperature(temp)`         | Set HOME temperature          | `temp: float` (5.0-35.0°C)                     |
+| `set_away_temperature(temp)`         | Set AWAY temperature          | `temp: float` (5.0-35.0°C)                     |
+| `set_hysteresis_band(hyst)`          | Set temperature hysteresis    | `hyst: float` (0.0-0.5°C)                      |
+| `set_device_name(name)`              | Set device name               | `name: str` (1-20 chars)                       |
+| `set_child_lock(enabled)`            | Enable/disable child lock     | `enabled: bool`                                |
+| `set_boost_mode(enabled)`            | Enable/disable boost mode     | `enabled: bool`                                |
+| `reboot_thermostat()`                | Reboot the thermostat         | None                                           |
+| `recalibrate_co2_sensor()`           | Recalibrate CO2 sensor        | None                                           |
+| `toggle_actuator_exercise(disabled)` | Enable/disable actuator test  | `disabled: bool`                               |
 
 ### Data Model (ThermostatStatus)
 
@@ -217,7 +218,7 @@ class ThermostatStatus:
 @dataclass
 class ThermostatSettings:
     device_id: str                      # Unique device ID
-    mode: int                           # 1=HOME, 2=AWAY
+    mode: int                           # 1=HOME, 2=AWAY (see ThermostatMode enum)
     setpoint_temp: float                # HOME temperature in °C
     setpoint_temp_away: float           # AWAY temperature in °C
     hysteresis_band: float              # Temperature hysteresis in °C
@@ -306,6 +307,32 @@ This library is tested and compatible with:
 - Python 3.11, 3.12, 3.13+
 
 ## Advanced Usage
+
+### Mode Control with ThermostatMode
+
+`set_mode()` accepts a `ThermostatMode` member (recommended) or the raw `int` value:
+
+```python
+from pyairobotrest import AirobotClient, ThermostatMode
+
+async with AirobotClient("192.168.1.100", "T01XXXXXX", "password") as client:
+    await client.set_mode(ThermostatMode.HOME)  # or ThermostatMode.AWAY
+    await client.set_mode(1)                     # raw int also supported
+```
+
+### Writing a Full Settings Object
+
+Use `set_settings()` to persist a complete `ThermostatSettings` object back to the
+thermostat. Transient action flags (`REBOOT`, `RECALIBRATE_CO2`) are forced off so
+persisting settings never triggers those actions as a side effect:
+
+```python
+async with AirobotClient("192.168.1.100", "T01XXXXXX", "password") as client:
+    settings = await client.get_settings()
+    settings.setpoint_temp = 22.0
+    settings.setpoint_temp_away = 18.0
+    await client.set_settings(settings)
+```
 
 ### Firmware and Hardware Version Decoding
 
